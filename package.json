@@ -2,6 +2,7 @@
   "name": "lider-legal-bolivia",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Asistente legal inteligente para Bolivia.",
   "dependencies": {
     "react": "19.2.0",
