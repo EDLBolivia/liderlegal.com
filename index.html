@@ -9,14 +9,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="index.css" />
     <script src="https://unpkg.com/mammoth@1.6.0/mammoth.browser.min.js"></script>
-    <!-- Este script es el que añadimos para que todo funcione online -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.22.0",
     "react/": "https://aistudiocdn.com/react@^19.2.0/"
   }
 }
@@ -24,7 +22,6 @@
 </head>
   <body>
     <div id="root"></div>
-    <!-- También cambiamos un poco esta línea -->
     <script type="text/babel" data-type="module" src="index.tsx"></script>
   </body>
 </html>
