@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { GoogleGenAI } from "@google/genai";
 
 declare const mammoth: any;
 
@@ -63,7 +62,7 @@ const App = () => {
   const showNotification = (message: string, type: 'success' | 'error') => {
     setNotification({ message, type });
   };
-
+  
   const handleDocxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setNotification(null);
     if (event.target.files && event.target.files[0]) {
@@ -103,9 +102,7 @@ const App = () => {
 
     const truncatedText = text.trim().split(/\s+/).filter(Boolean).slice(0, WORD_LIMIT).join(' ');
 
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const prompt = `
+    const prompt = `
         Eres "Líder Legal", un asistente experto en derecho boliviano. Analiza el siguiente texto legal.
         
         TAREAS A REALIZAR:
@@ -122,9 +119,8 @@ const App = () => {
         ${truncatedText}
         ---
       `;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+      
+    const requestBody = {
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -149,23 +145,29 @@ const App = () => {
             }
           }
         }
+    };
+
+    try {
+      const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
       });
       
       if (analysisCancelled.current) return;
-
-      try {
-        const resultJson = JSON.parse(response.text);
-        setAnalysisResult(resultJson);
-      } catch (parseError) {
-        console.error("Error al procesar la respuesta del modelo:", parseError);
-        console.error("Respuesta recibida del modelo:", response.text);
-        showNotification('La respuesta del modelo no pudo ser procesada. Intente ajustar su texto.', 'error');
+      
+      if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Error en la respuesta del servidor.');
       }
+
+      const resultJson = await response.json();
+      setAnalysisResult(resultJson);
 
     } catch (error) {
       if (analysisCancelled.current) return;
       console.error("Error durante el análisis:", error);
-      showNotification('Hubo un error durante el análisis. Por favor, intente de nuevo.', 'error');
+      showNotification(`Hubo un error durante el análisis: ${error.message}`, 'error');
     } finally {
       if (!analysisCancelled.current) {
         setIsLoadingAnalysis(false);
@@ -181,30 +183,41 @@ const App = () => {
       searchCancelled.current = false;
       setIsLoadingSearch(true);
       setSearchResult('');
+      
+      const requestBody = {
+        contents: searchQuery,
+        config: {
+            systemInstruction: `
+                Eres un asistente de investigación legal experto EXCLUSIVAMENTE en el marco normativo de Bolivia.
+                Tu única fuente de verdad son los datos de la Gaceta Oficial de Bolivia, Lexivox, el SILEP, y la jurisprudencia del Tribunal Constitucional Plurinacional (TCP).
+                Responde a la consulta del usuario de manera clara y directa, citando las fuentes específicas (artículo, número de ley, número de sentencia).
+                SI NO ENCUENTRAS la información precisa en estas fuentes, tu ÚNICA Y OBLIGATORIA respuesta debe ser: [ADVERTENCIA: DATO NO VERIFICADO. NO SE ENCONTRÓ LA NORMA BOLIVIANA EN LA BASE DE DATOS VIGENTE.]
+                No intentes adivinar ni usar conocimiento general.
+            `,
+        }
+      };
 
       try {
-          const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-          const response = await ai.models.generateContent({
-              model: 'gemini-2.5-flash',
-              contents: searchQuery,
-              config: {
-                systemInstruction: `
-                    Eres un asistente de investigación legal experto EXCLUSIVAMENTE en el marco normativo de Bolivia.
-                    Tu única fuente de verdad son los datos de la Gaceta Oficial de Bolivia, Lexivox, el SILEP, y la jurisprudencia del Tribunal Constitucional Plurinacional (TCP).
-                    Responde a la consulta del usuario de manera clara y directa, citando las fuentes específicas (artículo, número de ley, número de sentencia).
-                    SI NO ENCUENTRAS la información precisa en estas fuentes, tu ÚNICA Y OBLIGATORIA respuesta debe ser: [ADVERTENCIA: DATO NO VERIFICADO. NO SE ENCONTRÓ LA NORMA BOLIVIANA EN LA BASE DE DATOS VIGENTE.]
-                    No intentes adivinar ni usar conocimiento general.
-                `,
-              }
+          const response = await fetch('/api/analyze', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(requestBody)
           });
           
           if (searchCancelled.current) return;
-          setSearchResult(response.text);
+
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Error en la respuesta del servidor.');
+          }
+
+          const data = await response.json();
+          setSearchResult(data.text);
 
       } catch (error) {
           if (searchCancelled.current) return;
           console.error("Error during search:", error);
-          showNotification('Hubo un error durante la búsqueda. Por favor, intente de nuevo.', 'error');
+          showNotification(`Hubo un error durante la búsqueda: ${error.message}`, 'error');
       } finally {
           if (!searchCancelled.current) {
             setIsLoadingSearch(false);
