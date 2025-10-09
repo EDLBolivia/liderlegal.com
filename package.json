@@ -1,9 +1,1 @@
-{
-  "name": "liderlegal-backend",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Serverless functions for liderlegal.com",
-  "dependencies": {
-    "@google/genai": "^0.14.2"
-  }
-}
+
