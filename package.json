@@ -3,5 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Asistente legal inteligente para Bolivia.",
-  "dependencies": {}
+  "scripts": {
+    "build": "echo 'Static site; no build required.'"
+  }
 }
