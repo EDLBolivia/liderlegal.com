@@ -1,11 +1,11 @@
-{
   "name": "lider-legal-bolivia",
   "version": "1.0.0",
   "private": true,
   "description": "Asistente legal inteligente para Bolivia.",
   "dependencies": {
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "@google/genai": "^1.22.0"
   },
   "scripts": {
     "build": "echo 'Static site; no build required.'"
