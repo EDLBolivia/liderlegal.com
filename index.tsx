@@ -153,12 +153,18 @@ const App = () => {
       
       if (analysisCancelled.current) return;
 
-      const resultJson = JSON.parse(response.text);
-      setAnalysisResult(resultJson);
+      try {
+        const resultJson = JSON.parse(response.text);
+        setAnalysisResult(resultJson);
+      } catch (parseError) {
+        console.error("Error al procesar la respuesta del modelo:", parseError);
+        console.error("Respuesta recibida del modelo:", response.text);
+        showNotification('La respuesta del modelo no pudo ser procesada. Intente ajustar su texto.', 'error');
+      }
 
     } catch (error) {
       if (analysisCancelled.current) return;
-      console.error("Error during analysis:", error);
+      console.error("Error durante el análisis:", error);
       showNotification('Hubo un error durante el análisis. Por favor, intente de nuevo.', 'error');
     } finally {
       if (!analysisCancelled.current) {
