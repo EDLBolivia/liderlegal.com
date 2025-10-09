@@ -1,371 +1,391 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { createRoot } from 'react-dom/client';
-
-declare const mammoth: any;
-
-const WORD_LIMIT = 3000;
-
-interface Suggestion {
-  original: string;
-  sugerencia: string;
-  razon: string;
-  tipo: string;
-  severidad: string;
+:root {
+  --background-dark: #0d1b2a;
+  --surface-dark: #1b263b;
+  --primary-teal: #00a896;
+  --text-primary: #e0e1dd;
+  --text-secondary: #c5c6c7;
+  --border-color: #415a77;
+  --primary-blue: #007bff;
+  --error-red: #d90429;
+  --warning-yellow: #ffb703;
+  --success-green: #06d6a0;
 }
 
-interface AnalysisResult {
-  indiceTecnicidad: number;
-  sugerencias: Suggestion[];
-  textoCorregido: string;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-const App = () => {
-  const [text, setText] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
-  const [isLoadingSearch, setIsLoadingSearch] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-  const [searchResult, setSearchResult] = useState<string>('');
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [wordCount, setWordCount] = useState(0);
-  const [visitorCount, setVisitorCount] = useState(2008);
-  const [copiedText, setCopiedText] = useState(false);
-  const [copiedSearch, setCopiedSearch] = useState(false);
-  
-  const analysisCancelled = useRef(false);
-  const searchCancelled = useRef(false);
+html, body {
+  font-family: 'Roboto', sans-serif;
+  background-color: var(--background-dark);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
 
-  useEffect(() => {
-      const count = localStorage.getItem('visitorCount');
-      if (count) {
-          const newCount = parseInt(count, 10) + 1;
-          setVisitorCount(newCount);
-          localStorage.setItem('visitorCount', newCount.toString());
-      } else {
-          localStorage.setItem('visitorCount', '2008');
-          setVisitorCount(2008);
-      }
-  }, []);
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
 
-  useEffect(() => {
-    const words = text.trim().split(/\s+/).filter(Boolean);
-    setWordCount(words.length);
-  }, [text]);
+.container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
 
-  useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => setNotification(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [notification]);
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
 
-  const showNotification = (message: string, type: 'success' | 'error') => {
-    setNotification({ message, type });
-  };
+header h1 {
+  font-family: 'Poppins', sans-serif;
+  color: var(--primary-teal);
+  font-size: 2.5rem;
+  font-weight: 700;
+}
 
-  const handleDocxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setNotification(null);
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const arrayBuffer = e.target?.result;
-          const result = await mammoth.extractRawText({ arrayBuffer });
-          const words = result.value.trim().split(/\s+/).filter(Boolean);
-          if (words.length > WORD_LIMIT) {
-              setText(words.slice(0, WORD_LIMIT).join(' '));
-              showNotification(`Documento truncado a ${WORD_LIMIT} palabras.`, 'success');
-          } else {
-              setText(result.value);
-              showNotification('Documento Word cargado con éxito.', 'success');
-          }
-        } catch (error) {
-          console.error("Error processing .docx file:", error);
-          showNotification('No se pudo leer el archivo .docx. Intente con otro.', 'error');
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    }
-    event.target.value = '';
-  };
-  
-  const handleAnalyze = async () => {
-    if (!text.trim()) {
-      showNotification('Por favor, ingrese texto para analizar.', 'error');
-      return;
-    }
-    
-    analysisCancelled.current = false;
-    setIsLoadingAnalysis(true);
-    setAnalysisResult(null);
+header p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0.5rem auto 0;
+}
 
-    const truncatedText = text.trim().split(/\s+/).filter(Boolean).slice(0, WORD_LIMIT).join(' ');
+main {
+  width: 100%;
+}
 
-    try {
-      const response = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ text: truncatedText }),
-      });
+.content-block {
+  background-color: var(--surface-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
 
-      if (analysisCancelled.current) return;
+h2 {
+  font-family: 'Poppins', sans-serif;
+  color: var(--primary-teal);
+  border-bottom: 2px solid var(--primary-teal);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}
 
-      if (!response.ok) {
-          throw new Error(`El servidor respondió con el estado ${response.status}`);
-      }
+.editor-instructions {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
 
-      const resultJson = await response.json();
-      setAnalysisResult(resultJson);
+.editor-textarea {
+  width: 100%;
+  min-height: 250px;
+  background-color: var(--background-dark);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+  margin-bottom: 0.5rem;
+}
 
-    } catch (error) {
-      if (analysisCancelled.current) return;
-      console.error("Error during analysis:", error);
-      showNotification('Hubo un error durante el análisis. Por favor, intente de nuevo.', 'error');
-    } finally {
-      if (!analysisCancelled.current) {
-        setIsLoadingAnalysis(false);
-      }
-    }
-  };
+.editor-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
 
-  const handleSearch = async () => {
-      if (!searchQuery.trim()) {
-        showNotification('Por favor, ingrese una consulta para buscar.', 'error');
-        return;
-      }
-      searchCancelled.current = false;
-      setIsLoadingSearch(true);
-      setSearchResult('');
+.word-counter {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
 
-      try {
-          const response = await fetch('/api/search', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ query: searchQuery }),
-          });
+.word-counter.limit-exceeded {
+  color: var(--error-red);
+  font-weight: 500;
+}
 
-          if (searchCancelled.current) return;
-          
-          if (!response.ok) {
-              throw new Error(`El servidor respondió con el estado ${response.status}`);
-          }
+.btn-group {
+  display: flex;
+  gap: 0.75rem;
+}
 
-          const data = await response.json();
-          setSearchResult(data.result);
+.btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
-      } catch (error) {
-          if (searchCancelled.current) return;
-          console.error("Error during search:", error);
-          showNotification('Hubo un error durante la búsqueda. Por favor, intente de nuevo.', 'error');
-      } finally {
-          if (!searchCancelled.current) {
-            setIsLoadingSearch(false);
-          }
-      }
-  };
-  
-  const handleNewAnalysis = () => {
-      setText('');
-      setAnalysisResult(null);
-  };
-  
-  const handleNewSearch = () => {
-      setSearchQuery('');
-      setSearchResult('');
-  };
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-  const handleCancelAnalysis = () => {
-      analysisCancelled.current = true;
-      setIsLoadingAnalysis(false);
-  };
+.btn-primary {
+  background-color: var(--primary-blue);
+  color: #ffffff;
+}
 
-  const handleCancelSearch = () => {
-      searchCancelled.current = true;
-      setIsLoadingSearch(false);
-  };
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
 
-  const copyToClipboard = (textToCopy: string, type: 'text' | 'search') => {
-      navigator.clipboard.writeText(textToCopy);
-      if (type === 'text') {
-        setCopiedText(true);
-        setTimeout(() => setCopiedText(false), 2000);
-      } else {
-        setCopiedSearch(true);
-        setTimeout(() => setCopiedSearch(false), 2000);
-      }
-  };
+.btn-secondary {
+  background-color: transparent;
+  color: var(--primary-blue);
+  border: 1px solid var(--primary-blue);
+}
 
-  const getDialColorClass = (score: number) => {
-    if (score <= 40) return 'red';
-    if (score <= 70) return 'yellow';
-    return 'green';
-  };
-  
-  const radius = 50;
-  const circumference = 2 * Math.PI * radius;
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--primary-blue);
+  color: #ffffff;
+}
 
-  return (
-    <>
-      <div className="container">
-        <header>
-          <h1>Líder Legal (Bolivia)</h1>
-          <p>Su asistente legal inteligente. Perfeccione sus documentos legales con análisis de estilo y terminología, y fundamente sus argumentos con búsquedas precisas en la normativa y jurisprudencia de Bolivia.</p>
-        </header>
+.btn-cancel {
+    background-color: var(--error-red);
+    color: #ffffff;
+}
 
-        <main>
-          <div className="content-block">
-            <h2>1. Editor de Documentos</h2>
-            <p className="editor-instructions">Puedes redactar directamente o copiar y pegar el contenido desde un archivo de Word u otro editor de texto.</p>
-            <textarea
-              className="editor-textarea"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Escriba, pegue su texto legal o cargue un documento Word de menos de 3000 palabras aquí..."
-              disabled={isLoadingAnalysis}
-            />
-            <div className="editor-footer">
-               <p className={`word-counter ${wordCount > WORD_LIMIT ? 'limit-exceeded' : ''}`}>
-                 Palabras: {wordCount} / {WORD_LIMIT}
-               </p>
-              {!analysisResult ? (
-                  <div className="btn-group">
-                      <button className="btn btn-primary" onClick={handleAnalyze} disabled={isLoadingAnalysis || !text.trim()}>Analizar Texto</button>
-                      <label htmlFor="docx-upload" className={`btn btn-secondary ${isLoadingAnalysis ? 'disabled' : ''}`}>
-                          Cargar Word (.docx)
-                      </label>
-                      <input type="file" id="docx-upload" accept=".docx" onChange={handleDocxChange} style={{ display: 'none' }} disabled={isLoadingAnalysis}/>
-                  </div>
-              ) : (
-                  <button className="btn btn-primary" onClick={handleNewAnalysis}>Nuevo Análisis</button>
-              )}
-            </div>
-          </div>
-          
-            <div className="content-block">
-                 <h2>2. Análisis y Herramientas</h2>
-                 {isLoadingAnalysis && (
-                    <div className="loader-container">
-                        <div className="loader"></div>
-                        <span>Analizando texto...</span>
-                        <button className="btn btn-cancel" onClick={handleCancelAnalysis}>Cancelar</button>
-                    </div>
-                 )}
-                 {!isLoadingAnalysis && !analysisResult && (
-                    <p className="analysis-placeholder">Los resultados de su análisis aparecerán aquí.</p>
-                 )}
-                 {analysisResult && (
-                    <>
-                        <div className="dial-container">
-                             <div className="dial">
-                                 <svg viewBox="0 0 120 120" className="dial-svg">
-                                    <g transform="rotate(-90, 60, 60)">
-                                     <circle className="dial-background" cx="60" cy="60" r={radius} strokeWidth="10" />
-                                     <circle 
-                                         className={`dial-bar ${getDialColorClass(analysisResult.indiceTecnicidad)}`}
-                                         cx="60" cy="60" r={radius} strokeWidth="10"
-                                         strokeDasharray={circumference}
-                                         strokeDashoffset={circumference - (analysisResult.indiceTecnicidad / 100) * circumference}
-                                     />
-                                    </g>
-                                     <text x="50%" y="50%" className="dial-text">
-                                        {analysisResult.indiceTecnicidad}%
-                                     </text>
-                                 </svg>
-                             </div>
-                             <p className="dial-label"><b>Índice de Tecnicidad:</b> Una métrica del 1 al 100 que evalúa la formalidad y precisión de su redacción. Un puntaje más alto indica un texto de mayor calidad legal.</p>
-                        </div>
-                        
-                        <h2>Sugerencias de Mejora</h2>
-                        <div className="suggestions-list">
-                            {analysisResult.sugerencias.map((s, index) => (
-                                <div key={index} className={`suggestion-card ${s.severidad === 'Crítica' ? 'critica' : ''}`}>
-                                    {s.severidad === 'Crítica' && <span className="suggestion-badge">Alerta de Coherencia</span>}
-                                    <p><b>Original:</b> <span className={s.severidad === 'Crítica' ? 'text-critical' : ''}>{s.original}</span></p>
-                                    <p><strong>Sugerencia:</strong> {s.sugerencia}</p>
-                                    <p><strong>Razón:</strong> {s.razon}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </>
-                 )}
-            </div>
-            {analysisResult && (
-                 <div className="content-block">
-                     <h2>Texto Corregido</h2>
-                     <div className="corrected-text-content">{analysisResult.textoCorregido}</div>
-                     <div className="btn-group" style={{marginTop: '1rem'}}>
-                         <button className={`btn btn-primary ${copiedText ? 'copied' : ''}`} onClick={() => copyToClipboard(analysisResult.textoCorregido, 'text')}>
-                           {copiedText ? '¡Copiado!' : 'Copiar Texto'}
-                         </button>
-                     </div>
-                 </div>
-            )}
+.btn-cancel:hover:not(:disabled) {
+    opacity: 0.9;
+}
 
-          <div className="content-block">
-            <h2>3. Sustanciación y Búsqueda Legal</h2>
-            {isLoadingSearch && (
-              <div className="loader-container">
-                  <div className="loader"></div>
-                  <span>Buscando...</span>
-                  <button className="btn btn-cancel" onClick={handleCancelSearch}>Cancelar</button>
-              </div>
-            )}
-            {!isLoadingSearch && !searchResult && (
-                <>
-                    <p className="editor-instructions">Realiza una consulta para encontrar el fundamento normativo o jurisprudencial para tus argumentos.</p>
-                    <div className="search-input-group">
-                        <input
-                            type="text"
-                            className="search-input"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Ej: Requisitos para usucapión"
-                        />
-                        <button className="btn btn-primary" onClick={handleSearch} disabled={!searchQuery.trim()}>Buscar</button>
-                    </div>
-                </>
-            )}
-            {!isLoadingSearch && searchResult && (
-                 <div className="search-results">
-                     <p>{searchResult}</p>
-                     <div className="btn-group">
-                        <button className={`btn btn-primary ${copiedSearch ? 'copied' : ''}`} onClick={() => copyToClipboard(searchResult, 'search')}>
-                          {copiedSearch ? '¡Copiado!' : 'Copiar Texto'}
-                        </button>
-                        <button className="btn btn-secondary" onClick={handleNewSearch}>Nueva Búsqueda</button>
-                     </div>
-                 </div>
-            )}
-          </div>
+.btn.copied {
+  background-color: var(--success-green);
+  color: var(--background-dark);
+}
 
-          <div className="disclaimer-block">
-            <p><span className="disclaimer-title">Nota Importante:</span> Líder Legal (Bolivia) es una herramienta de asistencia diseñada para optimizar su tiempo y eficiencia. Sin embargo, no reemplaza el juicio profesional. Es responsabilidad del abogado revisar y verificar la pertinencia de cada normativa, jurisprudencia y sugerencia antes de su uso en documentos oficiales.</p>
-          </div>
-        </main>
-      </div>
-      <footer>
-        <p>© 2025 Escuela de Líderes - Bolivia</p>
-        <p>Dirección: Av. 20 de octubre No. 2034 Piso 1 Of. 103 - WhatsApp +591 79115511</p>
-        <div className="visitor-count">
-          Usted es el visitante No. <span>{visitorCount}</span>
-        </div>
-      </footer>
-      {notification && (
-        <div className={`notification-message ${notification.type}`}>
-          {notification.message}
-        </div>
-      )}
-    </>
-  );
-};
+.loader-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+}
 
-const container = document.getElementById('root');
-if (container) {
-  const root = createRoot(container);
-  root.render(<App />);
+.loader {
+  border: 4px solid var(--border-color);
+  border-top: 4px solid var(--primary-teal);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.analysis-placeholder, .search-results p {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.dial-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.dial {
+  position: relative;
+  width: 150px;
+  height: 150px;
+}
+
+.dial-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.dial-background, .dial-bar {
+  fill: none;
+}
+
+.dial-background {
+  stroke: var(--border-color);
+}
+
+.dial-bar {
+  stroke: var(--primary-teal);
+  transition: stroke 0.5s ease, stroke-dashoffset 0.5s ease-out;
+}
+
+.dial-bar.red { stroke: var(--error-red); }
+.dial-bar.yellow { stroke: var(--warning-yellow); }
+.dial-bar.green { stroke: var(--success-green); }
+
+.dial-text {
+    font-family: 'Poppins', sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    fill: var(--text-primary);
+    text-anchor: middle;
+    dominant-baseline: middle;
+    x: 50%;
+    y: 50%;
+}
+
+.dial-label {
+  margin-top: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.suggestion-card {
+  background-color: var(--background-dark);
+  border: 1px solid var(--border-color);
+  border-left: 5px solid var(--primary-blue);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.suggestion-card.critica {
+    border-left-color: var(--error-red);
+}
+
+.suggestion-badge {
+    display: inline-block;
+    background-color: var(--error-red);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.suggestion-card p {
+  margin: 0.5rem 0;
+}
+
+.suggestion-card p strong {
+    color: var(--primary-teal);
+}
+
+.text-critical {
+    color: var(--error-red);
+    font-weight: 500;
+}
+
+.corrected-text-content {
+  background-color: var(--background-dark);
+  padding: 1rem;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+}
+
+.search-input-group {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.search-input {
+    flex-grow: 1;
+    background-color: var(--background-dark);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.6rem;
+    font-size: 1rem;
+}
+
+.search-results {
+    white-space: pre-wrap;
+}
+.search-results .btn-group {
+    margin-top: 1.5rem;
+}
+
+.notification-message {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    font-weight: 500;
+    z-index: 1000;
+}
+
+.notification-message.success {
+    background-color: var(--success-green);
+    color: var(--background-dark);
+}
+
+.notification-message.error {
+    background-color: var(--error-red);
+    color: #ffffff;
+}
+
+
+.disclaimer-block {
+    background-color: var(--primary-teal);
+    color: var(--background-dark);
+    text-align: center;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+.disclaimer-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 1.3rem;
+}
+
+footer {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: auto;
+}
+
+.visitor-count {
+    margin-top: 1rem;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.visitor-count span {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-teal);
 }
