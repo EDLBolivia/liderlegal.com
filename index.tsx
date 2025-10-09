@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { GoogleGenAI, Type } from "@google/genai";
 
 declare const mammoth: any;
 
@@ -104,56 +103,21 @@ const App = () => {
     const truncatedText = text.trim().split(/\s+/).filter(Boolean).slice(0, WORD_LIMIT).join(' ');
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const prompt = `
-        Eres "Líder Legal", un asistente experto en derecho boliviano. Analiza el siguiente texto legal.
-        
-        TAREAS A REALIZAR:
-        1.  **ANÁLISIS DE ESTILO Y TERMINOLOGÍA:** Corrige el lenguaje coloquial, ambiguo o incorrecto, reemplazándolo con terminología jurídica precisa y formal de Bolivia.
-        2.  **VERIFICACIÓN DE COHERENCIA CONTEXTUAL:** Identifica cada cita legal (artículos, sentencias, etc.). Usando tu conocimiento de las fuentes oficiales bolivianas (Gaceta, Lexivox, SILEP, TCP), evalúa si la cita es contextualmente relevante. Si un artículo de estafa se usa en un argumento de violación, o una sentencia de inmuebles en un caso familiar, márcalo como una "Alerta de Coherencia".
-        3.  **GENERACIÓN DE RESULTADOS:** Devuelve un único objeto JSON. NO incluyas explicaciones fuera del JSON.
-
-        REGLA DE FORMATO DEL TEXTO CORREGIDO: Es absolutamente CRÍTICO que el campo "textoCorregido" preserve la estructura original de párrafos y saltos de línea del texto original. No debe ser un solo bloque de texto.
-
-        REGLA FINAL: Si detectas una Alerta de Coherencia, es CRÍTICO que la incluyas en las sugerencias y apliques la corrección sugerida en el "textoCorregido".
-
-        TEXTO A ANALIZAR:
-        ---
-        ${truncatedText}
-        ---
-      `;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              indiceTecnicidad: { type: Type.INTEGER, description: "Un puntaje de 0 a 100 evaluando la calidad formal y técnica del texto." },
-              sugerencias: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    original: { type: Type.STRING, description: "El fragmento de texto original que necesita corrección." },
-                    sugerencia: { type: Type.STRING, description: "La versión corregida y mejorada del fragmento." },
-                    razon: { type: Type.STRING, description: "La explicación clara de por qué se hizo la corrección." },
-                    tipo: { type: Type.STRING, description: "Tipo de sugerencia, ej: 'Estilo', 'Terminología', 'Coherencia'." },
-                    severidad: { type: Type.STRING, description: "Severidad, ej: 'Baja', 'Media', 'Crítica'." },
-                  }
-                }
-              },
-              textoCorregido: { type: Type.STRING, description: "El texto completo con TODAS las sugerencias (incluyendo las críticas) aplicadas, respetando el formato original de párrafos." }
-            }
-          }
-        }
+      const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ text: truncatedText }),
       });
-      
+
       if (analysisCancelled.current) return;
 
-      const resultJson = JSON.parse(response.text);
+      if (!response.ok) {
+          throw new Error(`El servidor respondió con el estado ${response.status}`);
+      }
+
+      const resultJson = await response.json();
       setAnalysisResult(resultJson);
 
     } catch (error) {
@@ -177,23 +141,22 @@ const App = () => {
       setSearchResult('');
 
       try {
-          const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-          const response = await ai.models.generateContent({
-              model: 'gemini-2.5-flash',
-              contents: searchQuery,
-              config: {
-                systemInstruction: `
-                    Eres un asistente de investigación legal experto EXCLUSIVAMENTE en el marco normativo de Bolivia.
-                    Tu única fuente de verdad son los datos de la Gaceta Oficial de Bolivia, Lexivox, el SILEP, y la jurisprudencia del Tribunal Constitucional Plurinacional (TCP).
-                    Responde a la consulta del usuario de manera clara y directa, citando las fuentes específicas (artículo, número de ley, número de sentencia).
-                    SI NO ENCUENTRAS la información precisa en estas fuentes, tu ÚNICA Y OBLIGATORIA respuesta debe ser: [ADVERTENCIA: DATO NO VERIFICADO. NO SE ENCONTRÓ LA NORMA BOLIVIANA EN LA BASE DE DATOS VIGENTE.]
-                    No intentes adivinar ni usar conocimiento general.
-                `,
-              }
+          const response = await fetch('/api/search', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ query: searchQuery }),
           });
-          
+
           if (searchCancelled.current) return;
-          setSearchResult(response.text);
+          
+          if (!response.ok) {
+              throw new Error(`El servidor respondió con el estado ${response.status}`);
+          }
+
+          const data = await response.json();
+          setSearchResult(data.result);
 
       } catch (error) {
           if (searchCancelled.current) return;
