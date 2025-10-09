@@ -1,3 +1,5 @@
+import { GoogleGenAI } from "@google/genai";
+
 export const config = {
   runtime: 'edge',
 };
@@ -21,6 +23,8 @@ export default async function handler(request) {
         throw new Error("API_KEY is not configured in Vercel");
     }
 
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
+
     const systemInstruction = `
         Eres un asistente de investigación legal experto EXCLUSIVAMENTE en el marco normativo de Bolivia.
         Tu única fuente de verdad son los datos de la Gaceta Oficial de Bolivia, Lexivox, el SILEP, y la jurisprudencia del Tribunal Constitucional Plurinacional (TCP).
@@ -28,28 +32,16 @@ export default async function handler(request) {
         SI NO ENCUENTRAS la información precisa en estas fuentes, tu ÚNICA Y OBLIGATORIA respuesta debe ser: [ADVERTENCIA: DATO NO VERIFICADO. NO SE ENCONTRÓ LA NORMA BOLIVIANA EN LA BASE DE DATOS VIGENTE.]
         No intentes adivinar ni usar conocimiento general.
     `;
-
-    const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
     
-    const apiResponse = await fetch(GEMINI_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: query }] }],
-            system_instruction: {
-              parts: [{ text: systemInstruction }]
-            }
-        }),
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: query,
+        config: {
+            systemInstruction: systemInstruction,
+        }
     });
-
-    if (!apiResponse.ok) {
-        const errorBody = await apiResponse.text();
-        console.error("Gemini API Error:", errorBody);
-        throw new Error(`Gemini API responded with status ${apiResponse.status}`);
-    }
-
-    const responseData = await apiResponse.json();
-    const resultText = responseData.candidates[0].content.parts[0].text;
+    
+    const resultText = response.text;
 
     return new Response(JSON.stringify({ result: resultText }), {
       status: 200,
@@ -58,7 +50,7 @@ export default async function handler(request) {
 
   } catch (error) {
     console.error('Error in search function:', error.message);
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+    return new Response(JSON.stringify({ error: 'Internal Server Error', details: error.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
