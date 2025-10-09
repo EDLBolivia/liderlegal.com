@@ -243,8 +243,6 @@ h2 {
     fill: var(--text-primary);
     text-anchor: middle;
     dominant-baseline: middle;
-    x: 50%;
-    y: 50%;
 }
 
 .dial-label {
@@ -388,4 +386,4 @@ footer {
     font-size: 2.5rem;
     font-weight: 700;
     color: var(--primary-teal);
-}
+} 
