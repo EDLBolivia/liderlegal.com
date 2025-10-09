@@ -1,3 +1,5 @@
+import { GoogleGenAI, Type } from "@google/genai";
+
 export const config = {
   runtime: 'edge',
 };
@@ -21,6 +23,8 @@ export default async function handler(request) {
         throw new Error("API_KEY is not configured in Vercel");
     }
 
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
+
     const prompt = `
         Eres "Líder Legal", un asistente experto en derecho boliviano. Analiza el siguiente texto legal.
         
@@ -40,57 +44,43 @@ export default async function handler(request) {
       `;
     
     const responseSchema = {
-      type: "OBJECT",
+      type: Type.OBJECT,
       properties: {
-        indiceTecnicidad: { type: "NUMBER", description: "Un puntaje de 0 a 100 evaluando la calidad formal y técnica del texto." },
+        indiceTecnicidad: { type: Type.NUMBER, description: "Un puntaje de 0 a 100 evaluando la calidad formal y técnica del texto." },
         sugerencias: {
-          type: "ARRAY",
+          type: Type.ARRAY,
           items: {
-            type: "OBJECT",
+            type: Type.OBJECT,
             properties: {
-              original: { type: "STRING", description: "El fragmento de texto original que necesita corrección." },
-              sugerencia: { type: "STRING", description: "La versión corregida y mejorada del fragmento." },
-              razon: { type: "STRING", description: "La explicación clara de por qué se hizo la corrección." },
-              tipo: { type: "STRING", description: "Tipo de sugerencia, ej: 'Estilo', 'Terminología', 'Coherencia'." },
-              severidad: { type: "STRING", description: "Severidad, ej: 'Baja', 'Media', 'Crítica'." },
+              original: { type: Type.STRING, description: "El fragmento de texto original que necesita corrección." },
+              sugerencia: { type: Type.STRING, description: "La versión corregida y mejorada del fragmento." },
+              razon: { type: Type.STRING, description: "La explicación clara de por qué se hizo la corrección." },
+              tipo: { type: Type.STRING, description: "Tipo de sugerencia, ej: 'Estilo', 'Terminología', 'Coherencia'." },
+              severidad: { type: Type.STRING, description: "Severidad, ej: 'Baja', 'Media', 'Crítica'." },
             }
           }
         },
-        textoCorregido: { type: "STRING", description: "El texto completo con TODAS las sugerencias (incluyendo las críticas) aplicadas, respetando el formato original de párrafos." }
+        textoCorregido: { type: Type.STRING, description: "El texto completo con TODAS las sugerencias (incluyendo las críticas) aplicadas, respetando el formato original de párrafos." }
       }
     };
-
-    const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
     
-    const apiResponse = await fetch(GEMINI_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-                response_mime_type: "application/json",
-                response_schema: responseSchema
-            }
-        }),
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: responseSchema,
+        }
     });
 
-    if (!apiResponse.ok) {
-        const errorBody = await apiResponse.text();
-        console.error("Gemini API Error:", errorBody);
-        throw new Error(`Gemini API responded with status ${apiResponse.status}`);
-    }
-
-    const responseData = await apiResponse.json();
-    const resultText = responseData.candidates[0].content.parts[0].text;
-    
-    return new Response(resultText, {
+    return new Response(response.text, {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('Error in analyze function:', error.message);
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+    return new Response(JSON.stringify({ error: 'Internal Server Error', details: error.message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
