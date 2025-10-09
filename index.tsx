@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 declare const mammoth: any;
 
@@ -129,23 +129,23 @@ const App = () => {
         config: {
           responseMimeType: "application/json",
           responseSchema: {
-            type: Type.OBJECT,
+            type: "OBJECT",
             properties: {
-              indiceTecnicidad: { type: Type.INTEGER, description: "Un puntaje de 0 a 100 evaluando la calidad formal y técnica del texto." },
+              indiceTecnicidad: { type: "INTEGER", description: "Un puntaje de 0 a 100 evaluando la calidad formal y técnica del texto." },
               sugerencias: {
-                type: Type.ARRAY,
+                type: "ARRAY",
                 items: {
-                  type: Type.OBJECT,
+                  type: "OBJECT",
                   properties: {
-                    original: { type: Type.STRING, description: "El fragmento de texto original que necesita corrección." },
-                    sugerencia: { type: Type.STRING, description: "La versión corregida y mejorada del fragmento." },
-                    razon: { type: Type.STRING, description: "La explicación clara de por qué se hizo la corrección." },
-                    tipo: { type: Type.STRING, description: "Tipo de sugerencia, ej: 'Estilo', 'Terminología', 'Coherencia'." },
-                    severidad: { type: Type.STRING, description: "Severidad, ej: 'Baja', 'Media', 'Crítica'." },
+                    original: { type: "STRING", description: "El fragmento de texto original que necesita corrección." },
+                    sugerencia: { type: "STRING", description: "La versión corregida y mejorada del fragmento." },
+                    razon: { type: "STRING", description: "La explicación clara de por qué se hizo la corrección." },
+                    tipo: { type: "STRING", description: "Tipo de sugerencia, ej: 'Estilo', 'Terminología', 'Coherencia'." },
+                    severidad: { type: "STRING", description: "Severidad, ej: 'Baja', 'Media', 'Crítica'." },
                   }
                 }
               },
-              textoCorregido: { type: Type.STRING, description: "El texto completo con TODAS las sugerencias (incluyendo las críticas) aplicadas, respetando el formato original de párrafos." }
+              textoCorregido: { type: "STRING", description: "El texto completo con TODAS las sugerencias (incluyendo las críticas) aplicadas, respetando el formato original de párrafos." }
             }
           }
         }
